@@ -12,15 +12,17 @@
 // the screen should remain fully clear as long as no key is pressed.
 
 // Put your code here.
+// 保存颜色信息
 @color
 M=0
-
+// 主循环,不断监听键盘
 (MAINLOOP)
 @color
 M=0
 @SCREEN
 D=A
-@i
+// addr 屏幕当前被填充的地址
+@addr
 M=D
 
 @KBD
@@ -37,18 +39,21 @@ M=-1
 0;JMP
 
 (FILLSCREEN)
-@i
+@addr
 D=M
+// 判断是否绘制完成
 @KBD
 D=D-A
 @MAINLOOP
 D;JEQ
+// 绘制
 @color
 D=M
-@i
+@addr
 A=M
 M=D
-@i
+// 到下一个屏幕填充的地址
+@addr
 M=M+1
 @FILLSCREEN
 0;JMP
