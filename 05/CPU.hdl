@@ -40,4 +40,51 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+    
+    // Mux before A-Register
+    Mux16(a=instruction,b=outALU,sel=instruction[15],out=inARegister);
+    
+    // A-Register
+    // load when it is a A-Instruction or (C-Instruction and d1 == 1)
+    Not(in=instruction[15],out=isAIns);
+    And(a=instruction[15],b=instruction[5],out=isCInsAndD1);
+    Or(a=isAIns,b=isCInsAndD1,out=loadARegister);
+    ARegister(in=inARegister,load=loadARegister,out=outARegister,out[0..14]=addressM,out[0..14]=nextAddress);
+    
+    // Mux before input M or A
+    // if a = 0 choose A else choose M
+    Mux16(a=outARegister,b=inM,sel=instruction[12],out=inALUAOrM);
+
+    // D-Register
+    // load when it is C-Instruction and d2 == 1
+    And(a=instruction[15],b=instruction[4],out=isCInsAndD2);
+    DRegister(in=outALU,load=isCInsAndD2,out=inALUD);
+
+    // ALU
+    ALU(x=inALUD,y=inALUAOrM,out=outALU,out=outM,zr=isALUOutZr,ng=isALUOutNg,zx=instruction[11],nx=instruction[10],zy=instruction[9],ny=instruction[8],f=instruction[7],no=instruction[6]);
+    // if it is C-Instruction and d3 == 1 write to memory
+    And(a=instruction[15],b=instruction[3],out=writeM);
+
+    // PC 
+    // <= 0
+    Or(a=isALUOutZr,b=isALUOutNg,out=isALUOutLE);
+    // >= 0 
+    Not(in=isALUOutNg,out=isALUOutGE);
+    //  > 0
+    Not(in=isALUOutLE,out=isALUOutGT);
+    // != 0
+    Not(in=isALUOutZr,out=isALUOutNE);
+    Mux(a=false,b=isALUOutGT,sel=instruction[0],out=j1);
+    Mux(a=isALUOutZr,b=isALUOutGE,sel=instruction[0],out=j2);
+    Mux(a=isALUOutNg,b=isALUOutNE,sel=instruction[0],out=j3);
+    Mux(a=isALUOutLE,b=true,sel=instruction[0],out=j4);
+    Mux(a=j1,b=j2,sel=instruction[1],out=j5);
+    Mux(a=j3,b=j4,sel=instruction[1],out=j6);
+    Mux(a=j5,b=j6,sel=instruction[2],out=isLoadIns);
+    //Mux8Way(a=false,b=isALUOutGT,c=isALUOutZr,d=isALUOutGE,
+    //e=isALUOutNg,f=isALUOutNE,g=isALUOutLE,h=true,
+    //sel[0]=instruction[0],sel[1]=instruction[1],sel[2]=instruction[2],out=isLoadIns);
+    And(a=instruction[15],b=isLoadIns,out=isJMP);
+
+    PC(in[15]=false,in[0..14]=nextAddress,reset=reset,load=isJMP,inc=true,out[0..14]=pc);
 }

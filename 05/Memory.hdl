@@ -28,4 +28,15 @@ CHIP Memory {
 
     PARTS:
     // Put your code here:
+    // the first 16K is normal memory
+    RAM16K(in=in,load=loaddata,address=address[0..13],out=outdata);
+    // the next   8k is screen memory
+    Screen(in=in,load=loadscreen,address=address[0..12],out=outscreen);
+    // the last 1bit is keyboard
+    Keyboard(out=outkeyboard); 
+    // choose and out
+    DMux4Way(in=load,sel=address[13..14],a=loaddata0,b=loaddata1,c=loadscreen);
+    Or(a=loaddata0,b=loaddata1,out=loaddata);
+    Mux16(a=outscreen,b=outkeyboard,sel=address[13],out=outsk);
+    Mux16(a=outdata,b=outsk,sel=address[14],out=out);
 }
