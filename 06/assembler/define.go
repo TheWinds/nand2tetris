@@ -5,22 +5,21 @@ import (
 	"strings"
 )
 
-// PreDefineSymbols 预定义符号
+// PreDefineSymbols PreDefine Symbols
 var PreDefineSymbols map[string]string
 
 // dest=comp;jmp
 
-// DestCodeTable 存储目标	代码表
+// DestCodeTable destination code table
 var DestCodeTable map[string]string
 
-// CompCodeTable 计算表达式 代码表
+// CompCodeTable computation code table
 var CompCodeTable map[string]string
 
-// JumpCodeTable 跳转状态	代码表
+// JumpCodeTable jump state	code table
 var JumpCodeTable map[string]string
 
-// InitPreDefineSymbols 初始化预定义符号
-func InitPreDefineSymbols() {
+func initPreDefineSymbols() {
 	PreDefineSymbols = make(map[string]string)
 	// R0...R15
 	for i := 0; i < 16; i++ {
@@ -38,8 +37,8 @@ func InitPreDefineSymbols() {
 	}
 }
 
-// InitDestCodeTable 初始化存储目标代码表
-func InitDestCodeTable() {
+func initDestCodeTable() {
+	DestCodeTable = make(map[string]string)
 	DestCodeTable["NULL"] = "000"
 	DestCodeTable["M"] = "001"
 	DestCodeTable["D"] = "010"
@@ -51,8 +50,8 @@ func InitDestCodeTable() {
 
 }
 
-// InitJumpCodeTable 初始化跳转状态代码表
-func InitJumpCodeTable() {
+func initJumpCodeTable() {
+	JumpCodeTable = make(map[string]string)
 	JumpCodeTable["NULL"] = "000"
 	JumpCodeTable["JGT"] = "001"
 	JumpCodeTable["JEQ"] = "010"
@@ -63,8 +62,8 @@ func InitJumpCodeTable() {
 	JumpCodeTable["JMP"] = "111"
 }
 
-// InitCompCodeTable 初始化计算表达式代码表
-func InitCompCodeTable() {
+func initCompCodeTable() {
+	CompCodeTable = make(map[string]string)
 	CompCodeTable["0"] = "101010"
 	CompCodeTable["1"] = "111111"
 	CompCodeTable["-1"] = "111010"
@@ -84,11 +83,21 @@ func InitCompCodeTable() {
 	for comp, code := range CompCodeTable {
 		// a=0,select A-Register
 		CompCodeTable[comp] = "0" + code
+	}
+	for comp, code := range CompCodeTable {
 		// a=1,select Memory input
 		if strings.Contains(comp, "A") {
 			MComp := strings.Replace(comp, "A", "M", -1)
-			CompCodeTable[MComp] = "1" + code
+			CompCodeTable[MComp] = "1" + code[1:]
+			// fmt.Println(MComp, CompCodeTable[MComp])
 		}
 	}
 
+}
+
+func init() {
+	initPreDefineSymbols()
+	initDestCodeTable()
+	initJumpCodeTable()
+	initCompCodeTable()
 }
