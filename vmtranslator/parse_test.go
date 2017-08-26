@@ -75,3 +75,10 @@ func TestFileParse(t *testing.T) {
 	CloseVMSourcrFile()
 	os.Remove(fileName)
 }
+
+func Test1(t *testing.T) {
+	// fmt.Printf(genCmp("gt"))
+	// fmt.Printf(genCmp("lt"))
+	// fmt.Printf(genCmp("eq"))
+	fmt.Printf(genComp("not"))
+}
