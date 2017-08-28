@@ -3,17 +3,21 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
 var AsmSourceFile *os.File
+var FileName string
 
 func CreateAsmSourceFile(fileName string) (err error) {
 	AsmSourceFile, err = os.Create(fileName)
+	FileName = filepath.Base(fileName)
+	FileName = strings.Replace(FileName, ".asm", "", -1)
 	return
 }
 
-func CloseAsmSourceFile(fileName string) {
+func CloseAsmSourceFile() {
 	AsmSourceFile.Close()
 }
 
@@ -29,13 +33,25 @@ func WriteCommand(command *Command) {
 	// this						THIS:RAM[3]
 	// that						THAT:RAM[4]
 	// temp						RAM[5..12]
+	var asmCode string
 	switch command.Type {
 	case CEmpty:
 		return
 	case CArithmetic:
+		switch command.Name {
+		case "gt", "lt", "eq":
+			asmCode = genCmp(command.Name)
+		default:
+			asmCode = genComp(command.Name)
+		}
 	case CPush:
+		asmCode = genPush(command.FirstArg, command.SecondArg)
 	case CPop:
+		asmCode = genPop(command.FirstArg, command.SecondArg)
 	}
+	asmCode += "\n"
+	// asmCode = "//" + command.Name + " " + command.FirstArg + " " + strconv.Itoa(command.SecondArg) + "\n" + asmCode
+	AsmSourceFile.WriteString(asmCode)
 }
 
 // generate asm code that increase stack pointer
@@ -69,10 +85,11 @@ func genCmp(op string) string {
 		"D=M",
 		genDecSP(),
 		"D=M-D",
-		"M=1",
+		"M=-1",
 		"@"+endCmpLabel,
 		"D;"+jump,
 		"@SP",
+		"A=M",
 		"M=0",
 		"("+endCmpLabel+")",
 		genIncSP(),
@@ -126,22 +143,39 @@ var segmentSymbolMap = map[string]string{
 
 // generate asm code that push (sengment index) to stack
 func genPush(segment string, index int) string {
-	var header string
-	// local address and put address to D-Register
-	if segment == "constant" {
-		header = joinCode(
+	var prepareCode string
+	// locate address and put value to D-Register
+	switch segment {
+	case "constant":
+		prepareCode = joinCode(
+			fmt.Sprintf("@%d", index),
+			"D=A",
+		)
+	case "static":
+		prepareCode = joinCode(
+			fmt.Sprintf("@%s.%d", FileName, index),
+			"D=M",
+		)
+	case "temp", "pointer":
+		baseAddress := 3
+		if segment == "temp" {
+			baseAddress = 5
+		}
+		prepareCode = joinCode(
+			fmt.Sprintf("@%d", baseAddress+index),
+			"D=M",
+		)
+	default:
+		prepareCode = joinCode(
 			fmt.Sprintf("@%d", index),
 			"D=A",
 			fmt.Sprintf("@%s", segmentSymbolMap[segment]),
-			"A=A+D",
-			"D=M")
-	} else {
-		header = joinCode(
-			fmt.Sprintf("@%d", index),
-			"D=A")
+			"A=D+M",
+			"D=M",
+		)
 	}
 	return joinCode(
-		header,
+		prepareCode,
 		// push to stack
 		"@SP",
 		"A=M",
@@ -152,16 +186,40 @@ func genPush(segment string, index int) string {
 
 // generate asm code that pop to (sengment index)
 func genPop(segment string, index int) string {
-
+	var prepareCode string
+	// locate address and put address to R13
+	switch segment {
+	// if segment == (temp or pointer)
+	// locate pointer address
+	// else
+	// locate pointer-to address
+	case "temp", "pointer":
+		prepareCode = joinCode(
+			fmt.Sprintf("@%d", index),
+			"D=A",
+			fmt.Sprintf("@%s", segmentSymbolMap[segment]),
+			"D=D+A",
+			"@R13",
+			"M=D")
+	case "static":
+		prepareCode = joinCode(
+			fmt.Sprintf("@%s.%d", FileName, index),
+			"D=A",
+			"@R13",
+			"M=D")
+	default:
+		prepareCode = joinCode(
+			fmt.Sprintf("@%d", index),
+			"D=A",
+			fmt.Sprintf("@%s", segmentSymbolMap[segment]),
+			"A=M",
+			"D=D+A",
+			"@R13",
+			"M=D")
+	}
 	return joinCode(
-		// local address and put address to R13
-		fmt.Sprintf("@%d", index),
-		"D=A",
-		fmt.Sprintf("@%s", segmentSymbolMap[segment]),
-		"D=A+D",
-		"@R13",
-		"M=D",
-		// pop to segment
+		prepareCode,
+		// pop to (segment index)
 		genDecSP(),
 		"D=M",
 		"@R13",

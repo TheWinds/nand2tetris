@@ -76,9 +76,44 @@ func TestFileParse(t *testing.T) {
 	os.Remove(fileName)
 }
 
-func Test1(t *testing.T) {
-	// fmt.Printf(genCmp("gt"))
-	// fmt.Printf(genCmp("lt"))
-	// fmt.Printf(genCmp("eq"))
-	fmt.Printf(genComp("not"))
+func TestMemeryAccess(t *testing.T) {
+	Convey("TestMemeryAccess", t, func() {
+		dirs := []string{"BasicTest", "PointerTest", "StaticTest"}
+		for _, dirName := range dirs {
+			dir := fmt.Sprintf("/Users/thewinds/workspace/projects/nand2tetris/projects/07/MemoryAccess/%s/", dirName)
+			err := CreateAsmSourceFile(dir + dirName + ".asm")
+			So(err, ShouldBeNil)
+			sc, err := OpenVMSourcrFile(dir + dirName + ".vm")
+			So(err, ShouldBeNil)
+			for HasMoreCommands(sc) {
+				Advance(sc)
+				WriteCommand(CurrentCommand)
+			}
+			CloseVMSourcrFile()
+			CloseAsmSourceFile()
+		}
+
+	})
+
+}
+
+func TestStackArithmetic(t *testing.T) {
+	Convey("TestStackArithmetic", t, func() {
+		dirs := []string{"SimpleAdd", "StackTest"}
+		for _, dirName := range dirs {
+			dir := fmt.Sprintf("/Users/thewinds/workspace/projects/nand2tetris/projects/07/StackArithmetic/%s/", dirName)
+			err := CreateAsmSourceFile(dir + dirName + ".asm")
+			So(err, ShouldBeNil)
+			sc, err := OpenVMSourcrFile(dir + dirName + ".vm")
+			So(err, ShouldBeNil)
+			for HasMoreCommands(sc) {
+				Advance(sc)
+				WriteCommand(CurrentCommand)
+			}
+			CloseVMSourcrFile()
+			CloseAsmSourceFile()
+		}
+
+	})
+
 }
